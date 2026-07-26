@@ -172,8 +172,8 @@ function sanitizeInput(str) {
 }
 
 /**
- * Contact Form Client-side Validation & Submission
- * Premium interactive submission feedback with input sanitization
+ * Contact Form Client-side Validation & Google Apps Script Submission
+ * Sends form data to Google Apps Script with proper error handling
  */
 function initContactForm() {
   const contactForm = document.getElementById('nikvora-contact-form');
@@ -181,8 +181,14 @@ function initContactForm() {
   
   if (!contactForm) return;
 
-  contactForm.addEventListener('submit', (e) => {
+  // Track if a submission is already in progress to prevent duplicates
+  let isSubmitting = false;
+
+  contactForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
 
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
@@ -197,7 +203,8 @@ function initContactForm() {
     const name = sanitizeInput(nameInput.value.trim());
     const email = sanitizeInput(emailInput.value.trim());
     const phone = sanitizeInput(phoneInput.value.trim());
-    const message = sanitizeInput(messageInput.value.trim());
+    const industry = serviceInput ? sanitizeInput(serviceInput.value.trim()) : '';
+    const projectDetails = sanitizeInput(messageInput.value.trim());
 
     let hasError = false;
 
@@ -225,7 +232,7 @@ function initContactForm() {
       hasError = true;
     }
 
-    if (message === '') {
+    if (projectDetails === '') {
       messageInput.style.borderColor = '#ef4444';
       messageInput.setAttribute('aria-invalid', 'true');
       hasError = true;
@@ -233,7 +240,10 @@ function initContactForm() {
 
     if (hasError) return;
 
-    // Trigger premium submit loading experience
+    // Mark submission as in progress
+    isSubmitting = true;
+
+    // Disable submit button and show loading state
     const originalBtnText = submitBtn.textContent;
     submitBtn.disabled = true;
     submitBtn.textContent = '';
@@ -244,30 +254,79 @@ function initContactForm() {
     submitBtn.appendChild(spinner);
     submitBtn.appendChild(document.createTextNode(' Sending Request...'));
 
-    // Mock API Timeout to simulate network response
-    setTimeout(() => {
-      contactForm.style.transition = 'opacity 0.5s ease';
-      contactForm.style.opacity = '0';
-      
-      setTimeout(() => {
-        contactForm.style.display = 'none';
+    try {
+      // Prepare payload
+      const formPayload = {
+        name: name,
+        email: email,
+        phone: phone,
+        industry: industry,
+        projectDetails: projectDetails
+      };
 
-        if (successMessage) {
-          successMessage.style.display = 'block';
-          successMessage.style.opacity = '0';
-          successMessage.style.transform = 'translateY(20px)';
-          
-          // Trigger reflow
-          void successMessage.offsetHeight;
-          
-          successMessage.style.transition = 'opacity 0.6s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-          successMessage.style.opacity = '1';
-          successMessage.style.transform = 'translateY(0)';
-        }
-      }, 500);
+      // Send POST request to Google Apps Script
+      const response = await fetch('https://script.google.com/macros/s/AKfycbyQafLOYErXCW_ysWXizl0G5mqDAGfMyQtzumQwWPBwQqUzRG1kuC0UChPkSZ90hCOdSw/exec', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formPayload)
+      });
 
-    }, 1800);
+      // Success: Show success message and clear form
+      showSuccessMessage(contactForm, successMessage, nameInput, emailInput, phoneInput, serviceInput, messageInput);
+
+    } catch (error) {
+      // Network error or other failure: Show error message
+      console.error('Form submission error:', error);
+      showErrorMessage(submitBtn, originalBtnText);
+      isSubmitting = false;
+    }
   });
+
+  /**
+   * Display success message, hide form, and clear inputs
+   */
+  function showSuccessMessage(form, successMsg, nameInput, emailInput, phoneInput, serviceInput, messageInput) {
+    // Clear form fields
+    nameInput.value = '';
+    emailInput.value = '';
+    phoneInput.value = '';
+    serviceInput.value = 'construction';
+    messageInput.value = '';
+
+    form.style.transition = 'opacity 0.5s ease';
+    form.style.opacity = '0';
+    
+    setTimeout(() => {
+      form.style.display = 'none';
+
+      if (successMsg) {
+        successMsg.style.display = 'block';
+        successMsg.style.opacity = '0';
+        successMsg.style.transform = 'translateY(20px)';
+        
+        // Trigger reflow to start animation
+        void successMsg.offsetHeight;
+        
+        successMsg.style.transition = 'opacity 0.6s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        successMsg.style.opacity = '1';
+        successMsg.style.transform = 'translateY(0)';
+      }
+    }, 500);
+  }
+
+  /**
+   * Display error message and re-enable submit button
+   */
+  function showErrorMessage(submitBtn, originalBtnText) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalBtnText;
+
+    // Show inline error message to user
+    alert('❌ Something went wrong. Please try again.');
+  }
 }
 
 /**
