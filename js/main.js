@@ -267,18 +267,27 @@ function initContactForm() {
       // Send POST request to Google Apps Script
       const response = await fetch('https://script.google.com/macros/s/AKfycbyQafLOYErXCW_ysWXizl0G5mqDAGfMyQtzumQwWPBwQqUzRG1kuC0UChPkSZ90hCOdSw/exec', {
         method: 'POST',
-        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(formPayload)
       });
 
-      // Success: Show success message and clear form
-      showSuccessMessage(contactForm, successMessage, nameInput, emailInput, phoneInput, serviceInput, messageInput);
+      // Parse the JSON response
+      const result = await response.json();
+
+      // Check if submission was successful
+      if (result.success === true) {
+        // Success: Show success message and clear form
+        showSuccessMessage(contactForm, successMessage, nameInput, emailInput, phoneInput, serviceInput, messageInput, submitBtn, originalBtnText);
+      } else {
+        // Server returned failure
+        showErrorMessage(submitBtn, originalBtnText);
+        isSubmitting = false;
+      }
 
     } catch (error) {
-      // Network error or other failure: Show error message
+      // Network error or JSON parse error: Show error message
       console.error('Form submission error:', error);
       showErrorMessage(submitBtn, originalBtnText);
       isSubmitting = false;
@@ -288,12 +297,12 @@ function initContactForm() {
   /**
    * Display success message, hide form, and clear inputs
    */
-  function showSuccessMessage(form, successMsg, nameInput, emailInput, phoneInput, serviceInput, messageInput) {
+  function showSuccessMessage(form, successMsg, nameInput, emailInput, phoneInput, serviceInput, messageInput, submitBtn, originalBtnText) {
     // Clear form fields
     nameInput.value = '';
     emailInput.value = '';
     phoneInput.value = '';
-    serviceInput.value = 'construction';
+    if (serviceInput) serviceInput.value = 'construction';
     messageInput.value = '';
 
     form.style.transition = 'opacity 0.5s ease';
