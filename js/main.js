@@ -266,18 +266,20 @@ function initContactForm() {
 
       // Send POST request to Google Apps Script
       
-      console.log("Before fetch", formPayload);
-      
-      const response = await fetch('https://script.google.com/macros/s/AKfycbyQafLOYErXCW_ysWXizl0G5mqDAGfMyQtzumQwWPBwQqUzRG1kuC0UChPkSZ90hCOdSw/exec', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formPayload)
-      });
-      
-      console.log("After fetch", response);
+     console.log("Before fetch", formPayload);
 
+const response = await fetch(
+  'https://eoz7fhlceik29oz.m.pipedream.net',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(formPayload)
+  }
+);
+
+console.log("After fetch", response);
       // Parse the JSON response
       const result = await response.json();
 
